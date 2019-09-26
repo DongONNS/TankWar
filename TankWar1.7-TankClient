@@ -1,0 +1,158 @@
+import java.awt.Color;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TankClient extends Frame {
+	public static final int GAME_WIDTH = 800;
+	public static final int GAME_HEIGHT = 600;	
+		//此处是定义了坦克的起点
+		Tank MyTank = new Tank(50,50,true,this);
+		//Tank enemyTank = new Tank(100,100,false,this);
+		
+		//设置一系列爆炸；
+		List<Explode> explodes = new ArrayList<Explode>();
+		
+		//创建一个子弹实例对象
+		Missle m = null;
+		List<Missle> missles = new ArrayList<Missle>();
+		
+		List<Tank> tanks = new ArrayList<Tank>();
+		
+		
+		//画一个实心圆来表示坦克
+		@Override
+		public void paint(Graphics g) {
+			//显示剩余的炮弹数量
+			g.drawString("missles count:"+missles.size(), 10, 50);
+			g.drawString("explodes count:"+explodes.size(), 10, 70);
+			g.drawString("tanks count:"+tanks.size(), 10, 90);
+			
+			for (int i = 0; i <missles.size(); i++) {
+				Missle m = missles.get(i);
+				//取出每一颗子弹的时候检验这颗子弹是否击中了敌方坦克；
+//				m.hitTank(enemyTank);
+				m.hitTanks(tanks);
+				m.draw(g);
+			}
+			
+			//画出爆炸
+			for (int i = 0; i < explodes.size(); i++) {
+				Explode e = explodes.get(i);
+				e.draw(g);
+			}
+			
+			for (int i = 0; i < tanks.size(); i++) {
+				Tank t = tanks.get(i);
+				t.draw(g);
+			}
+			
+			//画出我方坦克；
+			MyTank.draw(g);
+			//画出敌方坦克
+//			enemyTank.draw(g);
+			
+		}
+
+		Image offScreenImage = null;
+		public void update(Graphics g){
+				if (offScreenImage==null) {
+					offScreenImage = this.createImage(GAME_WIDTH,GAME_HEIGHT);
+				}
+				Graphics gOffScreen  = offScreenImage.getGraphics();
+				//如下代码是为了清除那些重画的痕迹
+				Color c = gOffScreen.getColor();
+				gOffScreen.setColor(Color.GREEN);
+				gOffScreen.fillRect(0, 0, GAME_WIDTH,GAME_HEIGHT);
+				gOffScreen.setColor(c);
+				paint(gOffScreen);
+				g.drawImage(offScreenImage,0, 0, null);	
+		}
+
+	//设置窗口
+	public void lauchFrame(){
+		
+		for (int i = 0; i < 10; i++) {
+			tanks.add(new Tank(50+40*(i+1), 50, false,this));
+		}
+		
+		//设置窗口的位置起点；
+		this.setLocation(200,200);
+		//设置窗口大小
+		this.setSize(GAME_WIDTH,GAME_HEIGHT);
+		
+		//为窗口添加关闭功能
+		this.addWindowListener(new WindowAdapter() {
+			//匿名内部类，一般要求内部代码比较短小精悍，不涉及重要的业务逻辑
+			@Override
+			//使用eclipse 重写方法 右键 source 找到方法重写，再找到需要重写的方法即可；
+			public void windowClosing(WindowEvent e) {
+					System.exit(0);
+			}
+		});
+		
+		//设置窗口大小不可变；
+		this.setResizable(false);
+		
+		//设置窗口可视化
+		setVisible(true);
+		
+		//将窗口背景颜色设置为绿色
+		this.setBackground(Color.green);
+		
+		//设置窗口的名称
+		this.setTitle("坦克大战");
+		new Thread(new PaintThread()).start();
+		
+		//在lauchFrame中添加键盘的监听器；
+		this.addKeyListener(new KeyMonitor());
+		
+	}
+	
+	//新建一个重画线程，使得坦克的点能够持续的进行移动；
+	//使用线程重画更加均匀，更能控制重画的速度；
+	//按键重画不能解决子弹自动飞行的问题；
+	
+	//这里使用了匿名内部类，匿名内部类可以方便的访问包装类的方法，不方便公开的，职位包装类服务的类应当定义为内部类；
+	private class PaintThread implements Runnable{
+			public void run() {
+				while(true){
+					repaint();
+					try {
+						//设置重画的速度；
+						Thread.sleep(50);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+		}
+	}
+	
+	//添加一个键盘监听器，可以控制这个坦克的方向移动；
+	private class KeyMonitor extends KeyAdapter{
+		
+		//定义一个松开键盘的方法；
+		@Override
+		public void keyReleased(KeyEvent e) {
+				MyTank.keyReleased(e);
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e) {
+			MyTank.keyPressed(e);
+		}
+	}
+	
+	public static void main(String[] args) {
+		TankClient tc = new TankClient();
+		tc.lauchFrame();					
+	}
+	
+	
+}
